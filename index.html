@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基金持仓体检工作台</title>
+<style>
+:root{
+  --bg:#F4F4EF; --card:#FFFFFF; --line:#E3E3DA; --ink:#141410; --ink2:#6E6E64;
+  --lemon:#C5E803; --lemonSoft:#EFF7C8;
+  --good:#1B5E20; --goodBg:#E8F3E8; --warn:#8A6D00; --warnBg:#FFF6DC;
+  --bad:#B3261E; --badBg:#FBEAE8; --info:#28527A; --infoBg:#E8EFF6;
+  --mono:'Consolas','JetBrains Mono','SF Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,'Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;font-size:15px;line-height:1.6;padding:28px 20px 60px}
+.wrap{max-width:1180px;margin:0 auto}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+h1{font-size:30px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.sub{font-family:var(--mono);font-size:12px;color:var(--ink2);margin-top:6px;letter-spacing:.2px}
+.rule{height:3px;background:var(--ink);margin:14px 0 4px}
+.rule::after{content:"";display:block;width:72px;height:3px;background:var(--lemon)}
+section{margin-top:34px}
+h2{font-size:17px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+h2 .idx{font-family:var(--mono);font-size:12px;font-weight:700;background:var(--ink);color:#fff;padding:1px 7px;border-radius:2px}
+.note{font-size:12px;color:var(--ink2);margin-top:4px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-top:14px}
+textarea{width:100%;min-height:74px;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:14px;resize:vertical;background:#FCFCFA}
+textarea:focus{outline:2px solid var(--lemon);outline-offset:0}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+button{cursor:pointer;border:none;border-radius:8px;font-size:14px;font-weight:700;padding:11px 22px;font-family:inherit;transition:transform .06s, filter .15s}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-main{background:var(--lemon);color:#111}
+.btn-main:hover{filter:brightness(1.05)}
+.btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.btn-ghost:hover{background:#EDEDE6}
+.hint{font-size:12px;color:var(--ink2)}
+.status{font-family:var(--mono);font-size:13px;margin-top:12px;color:var(--info);min-height:20px}
+.status.err{color:var(--bad)}
+/* 组合总览 */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:#FCFCFA}
+.kpi .k{font-size:12px;color:var(--ink2)}
+.kpi .v{font-size:24px;font-weight:800;letter-spacing:-.5px;margin-top:2px}
+.kpi .v.small{font-size:17px}
+.kpi .u{font-size:12px;color:var(--ink2);font-weight:400}
+.wbar{display:flex;height:26px;border-radius:6px;overflow:hidden;margin-top:16px;border:1px solid var(--line)}
+.wbar .seg{display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;min-width:0;overflow:hidden;white-space:nowrap}
+.wlegend{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:10px;font-size:12.5px}
+.wlegend .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:baseline}
+.diag{margin-top:18px;border-top:1px dashed var(--line);padding-top:14px}
+.diag ul{list-style:none}
+.diag li{padding:7px 0 7px 26px;position:relative;font-size:14px;border-bottom:1px solid #F0F0EA}
+.diag li:last-child{border-bottom:none}
+.diag li .tag{font-family:var(--mono);font-size:11px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:8px}
+.t-p1{background:var(--badBg);color:var(--bad)} .t-p2{background:var(--warnBg);color:var(--warn)} .t-p3{background:var(--infoBg);color:var(--info)} .t-ok{background:var(--goodBg);color:var(--good)}
+.diag li::before{content:"";position:absolute;left:6px;top:14px;width:8px;height:8px;border-radius:50%;background:var(--ink)}
+.diag li.p1::before{background:var(--bad)} .diag li.p2::before{background:#D9A400} .diag li.p3::before{background:#5B84A8} .diag li.ok::before{background:var(--good)}
+/* 卡片 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:14px}
+.fcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;position:relative;display:flex;flex-direction:column;gap:10px}
+.fcard.cand{border:1.5px dashed #9AA85C;background:#FDFEF5}
+.fcard.fail{border:1.5px dashed #C9A0A0;background:#FEF9F9}
+.badge-cand{position:absolute;top:-10px;right:14px;background:var(--ink);color:var(--lemon);font-size:11px;font-weight:700;font-family:var(--mono);padding:2px 9px;border-radius:3px}
+.fhead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.fname{font-size:14.5px;font-weight:700;line-height:1.35}
+.fcode{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.ftype{display:inline-block;font-size:11px;padding:1px 7px;border-radius:3px;background:#F0F0E8;color:var(--ink2);margin-top:3px}
+.score-box{text-align:right;flex-shrink:0}
+.score-box .s{font-size:38px;font-weight:800;line-height:1;letter-spacing:-2px;font-variant-numeric:tabular-nums}
+.score-box .g{font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:3px;display:inline-block;margin-top:4px}
+.g-core{background:var(--goodBg);color:var(--good)} .g-hold{background:var(--infoBg);color:var(--info)} .g-watch{background:var(--warnBg);color:var(--warn)} .g-swap{background:var(--badBg);color:var(--bad)} .g-cash{background:#F0F0E8;color:var(--ink2)}
+.spark{width:100%;height:56px;display:block}
+.spark .baseline{stroke:#D8D8CE;stroke-width:1;stroke-dasharray:3 3}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 10px;font-size:12.5px}
+.metrics .mk{color:var(--ink2)} .metrics .mv{font-weight:700;text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.subbars{border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.subbar{display:flex;align-items:center;gap:8px;font-size:12px}
+.subbar .lbl{width:56px;color:var(--ink2);flex-shrink:0}
+.subbar .track{flex:1;height:8px;background:#EFEFE8;border-radius:4px;overflow:hidden}
+.subbar .fill{height:100%;border-radius:4px;background:var(--ink)}
+.subbar.hi .fill{background:var(--lemon)}
+.subbar .val{width:30px;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.meta{font-size:12px;color:var(--ink2);line-height:1.8;border-top:1px dashed var(--line);padding-top:8px}
+.meta b{color:var(--ink);font-weight:700}
+.amt{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2)}
+.amt input{width:110px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-family:var(--mono);font-size:13px;text-align:right;background:#FCFCFA}
+.amt input:focus{outline:2px solid var(--lemon)}
+.failcard{color:var(--bad);font-size:13.5px}
+/* 市场浏览 */
+.mktbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.mktbar select,.mktbar input{border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:13px;background:#FCFCFA;font-family:inherit}
+.mktbar select:focus,.mktbar input:focus{outline:2px solid var(--lemon)}
+.mktbar .lbl{font-size:12.5px;color:var(--ink2)}
+.progwrap{margin-top:12px;display:none}
+.progwrap.on{display:block}
+.progtrack{height:8px;background:#E8E8E0;border-radius:4px;overflow:hidden;margin-top:6px}
+.progfill{height:100%;width:0;background:var(--lemon);transition:width .2s}
+.mktstats{font-family:var(--mono);font-size:12px;color:var(--ink2);margin-top:8px}
+.mktable{max-height:640px;overflow-y:auto}
+.mktable table{min-width:820px}
+.mktable th{cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;background:#F7F7F2}
+.mktable th:hover{color:var(--ink)}
+.mktable th .ar{font-size:10px;color:var(--lemon);margin-left:2px}
+.mktable td.nm{max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.addbtn{background:var(--ink);color:var(--lemon);border-radius:5px;padding:4px 10px;font-size:12px;font-weight:700;border:none;cursor:pointer}
+.addbtn:hover{filter:brightness(1.3)}
+.addbtn.held{background:var(--lemon);color:var(--ink);cursor:default}
+.morebtn{display:block;width:100%;margin-top:12px;background:#EDEDE6;color:var(--ink);border-radius:8px;padding:11px;font-size:13.5px}
+.morebtn:hover{background:#E3E3DA}
+.preload-note{font-size:12px;color:var(--ink2);margin-top:8px;line-height:1.7}
+/* 对比表 */
+.tblwrap{overflow-x:auto;margin-top:14px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid #EFEFE8;white-space:nowrap;font-variant-numeric:tabular-nums}
+th{background:#F7F7F2;font-size:12px;color:var(--ink2);font-weight:700}
+td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:inherit;font-weight:700}
+tbody tr:last-child td{border-bottom:none}
+tr.hi td{background:var(--lemonSoft)}
+td .g2{font-size:11px;padding:0 5px;border-radius:3px;font-weight:700}
+/* 搜索 */
+.search{position:relative;flex:1;min-width:240px}
+.search input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;background:#FCFCFA}
+.search input:focus{outline:2px solid var(--lemon)}
+.drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.10);z-index:30;max-height:280px;overflow:auto;display:none}
+.drop.on{display:block}
+.drop .it{padding:9px 12px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #F4F4EE}
+.drop .it:hover{background:var(--lemonSoft)}
+.drop .it .c{font-family:var(--mono);color:var(--ink2)}
+.drop .it .t{font-size:11px;color:var(--ink2)}
+footer{margin-top:50px;border-top:2px solid var(--ink);padding-top:14px;font-size:12px;color:var(--ink2);line-height:1.8}
+.disclaim{background:#FCFCF7;border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin-top:14px;font-size:12px;color:var(--ink2)}
+.bigchart{margin-top:16px}
+.bigchart svg{width:100%;height:auto;display:block}
+.legend2{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:12px}
+.styleseg{display:inline-flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden;margin-left:auto}
+.styleseg button{border-radius:0;padding:8px 14px;font-size:12.5px;background:transparent;color:var(--ink);font-weight:600}
+.styleseg button.on{background:var(--ink);color:var(--lemon)}
+@media (max-width:640px){ h1{font-size:24px} body{padding:18px 12px 40px} .score-box .s{font-size:30px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>基金持仓体检工作台</h1>
+    <div class="sub">数据源：天天基金公开数据 · 净值截至 T-1 · 评分口径见分项 · 生成于 <span id="genTime"></span></div>
+    <div class="rule"></div>
+  </header>
+
+  <section id="sec-input">
+    <h2><span class="idx">01</span>录入持仓 / 候选</h2>
+    <p class="note">打开支付宝 → 基金 → 持有，把每只基金的 6 位代码抄过来（逗号、空格、换行分隔均可）。可选填持有金额，用于组合权重与加权指标。</p>
+    <div class="panel">
+      <textarea id="codesInput" placeholder="例：161725, 000961, 110011, 005827, 001594"></textarea>
+      <div class="btnrow">
+        <button class="btn-main" id="btnRun">开始体检</button>
+        <button class="btn-ghost" id="btnDemo">载入示例组合</button>
+        <div class="search">
+          <input id="searchInput" placeholder="搜索基金加入候选对比池（名称或代码）…">
+          <div class="drop" id="searchDrop"></div>
+        </div>
+      </div>
+      <div class="btnrow" style="margin-top:14px">
+        <span class="hint">评分风格</span>
+        <div class="styleseg" id="styleSeg">
+          <button data-w="defensive">稳健</button>
+          <button data-w="balanced" class="on">均衡</button>
+          <button data-w="aggressive">进攻</button>
+        </div>
+      </div>
+      <div class="btnrow" style="margin-top:16px;border-top:1px dashed var(--line);padding-top:14px">
+        <button class="btn-ghost" id="btnPreload">预载入全市场基金库</button>
+        <button class="btn-ghost" id="btnCache">读取上次缓存</button>
+        <span class="hint" id="dbInfo">基金库未载入（仅能体检已知代码）</span>
+      </div>
+      <div class="progwrap" id="progWrap">
+        <div class="hint" id="progMsg"></div>
+        <div class="progtrack"><div class="progfill" id="progFill"></div></div>
+      </div>
+      <div class="preload-note">预载入分两层：先取全市场基金代码与名称（约 2.8 万只），再抓主流基金近1月/3月/6月/1年/2年/3年收益（数千只）。<b>列表里的收益是官方披露值，回撤与夏普需点「加入对比」后按 3 年净值实时精算</b>。结果缓存在本机，下次打开秒级恢复。</div>
+      <div class="status" id="status"></div>
+    </div>
+  </section>
+
+  <section id="sec-overview" style="display:none">
+    <h2><span class="idx">02</span>组合总览</h2>
+    <div class="panel">
+      <div class="kpis" id="kpis"></div>
+      <div class="wbar" id="wbar"></div>
+      <div class="wlegend" id="wlegend"></div>
+      <div class="bigchart" id="bigchart"></div>
+      <div class="diag" id="diag"></div>
+    </div>
+  </section>
+
+  <section id="sec-cards" style="display:none">
+    <h2><span class="idx">03</span>单基金体检卡</h2>
+    <p class="note">评分 0–100，由五个分项加权而成（权重随风格档位变化），每只卡的下方列明分项得分，全部透明可复核。</p>
+    <div class="grid" id="cards"></div>
+  </section>
+
+  <section id="sec-market" style="display:none">
+    <h2><span class="idx">04</span>基金市场（全量筛选）</h2>
+    <p class="note">基于预载入的全市场基金库做初筛：定类型、卡收益区间。<b>这里只做"缩小范围"，不代替深度体检</b>——看到中意的点「加入对比」，会自动拉取该基金 3 年净值，用自算的回撤/夏普复核后再决定。</p>
+    <div class="panel">
+      <div class="mktbar">
+        <span class="lbl">类型</span><select id="mktType"></select>
+        <span class="lbl">近1年收益 ≥</span><input id="mktMinY1" type="number" step="5" value="" placeholder="%" style="width:88px">
+        <span class="lbl">最大回撤 ≤</span><input id="mktMaxMdd" type="number" step="5" placeholder="%" style="width:88px" title="需载入详情后才有回撤数据，此处按近1年收益跌幅近似">
+        <span class="lbl">规模 ≥</span><input id="mktMinScale" type="number" step="1" value="" placeholder="亿" style="width:80px" title="规模数据需点「加入对比」拉取详情后才有；未载入时会自动忽略此条件">
+        <span class="lbl">名称/代码</span><input id="mktKw" placeholder="含关键字…" style="width:150px">
+        <select id="mktSort">
+          <option value="y1">按近1年收益</option>
+          <option value="m6">按近6月收益</option>
+          <option value="m3">按近3月收益</option>
+          <option value="m1">按近1月收益</option>
+          <option value="y3">按近3年收益</option>
+          <option value="scale">按规模</option>
+        </select>
+        <div class="styleseg" style="margin-left:0">
+          <button data-ord="desc" class="on" id="ordDesc">降序</button>
+          <button data-ord="asc" id="ordAsc">升序</button>
+        </div>
+      </div>
+      <div class="mktstats" id="mktStats">等待基金库载入…</div>
+      <div class="tblwrap mktable" id="mktWrap" style="display:none"><table id="mktTable"></table></div>
+      <button class="morebtn" id="mktMore" style="display:none">显示更多（每次 +50 条）</button>
+    </div>
+  </section>
+
+  <section id="sec-compare" style="display:none">
+    <h2><span class="idx">05</span>持仓 vs 候选对比</h2>
+    <div class="tblwrap"><table id="cmpTable"></table></div>
+  </section>
+
+  <section id="sec-actions" style="display:none">
+    <h2><span class="idx">06</span>调仓优先级清单</h2>
+    <p class="note">按"先处理最弱的 → 再消除重复暴露 → 再集中核心"的顺序生成，只基于上方数据规则触发，不含任何主观预测。</p>
+    <div class="panel"><div class="diag" id="actions" style="margin-top:0;border-top:none;padding-top:0"></div></div>
+  </section>
+
+  <footer>
+    <div>数据口径：历史净值取近 3 年（不足 3 年按实际区间），年化波动率按实际披露频率年化；无风险利率假设 1.5%；同类百分位与阶段收益直接取自天天基金披露；规模 / 经理 / 机构占比为最新披露期数据。</div>
+    <div class="disclaim"><b>免责声明</b>：本工具仅为公开数据的整理与可视化，用于辅助个人决策复盘，不构成任何投资建议。评分基于历史数据，过往表现不预示未来收益。市场有风险，投资需谨慎，任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。</div>
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ================= 工具函数 ================= */
+const $ = s => document.querySelector(s);
+const fmtPct = (x, d=1) => (x==null||!isFinite(x)) ? "—" : (x*100).toFixed(d) + "%";
+const fmtNum = (x, d=2) => (x==null||!isFinite(x)) ? "—" : x.toFixed(d);
+const fmtMoney = x => (x==null||isNaN(x)) ? "—" : Number(x).toLocaleString("zh-CN");
+const esc = s => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+/* 分段线性映射 points=[[x,y],...] x 升序 */
+function pw(x, points){
+  if(!isFinite(x)) return 50;
+  if(x <= points[0][0]) return points[0][1];
+  for(let i=1;i<points.length;i++){
+    if(x <= points[i][0]){
+      const [x0,y0]=points[i-1],[x1,y1]=points[i];
+      return y0 + (y1-y0)*(x-x0)/(x1-x0);
+    }
+  }
+  return points[points.length-1][1];
+}
+const clip = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ================= 状态 ================= */
+const state = {
+  funds: [],        // 持仓
+  candidates: [],   // 候选
+  style: "balanced",
+  dbReady: false,   // 全量基金代码表
+  db: new Map(),    // code -> [name, type]
+};
+const WEIGHTS = {
+  defensive:  { ret:.25, sharpe:.30, mdd:.25, peer:.12, quality:.08 },
+  balanced:   { ret:.35, sharpe:.25, mdd:.15, peer:.15, quality:.10 },
+  aggressive: { ret:.45, sharpe:.20, mdd:.08, peer:.17, quality:.10 },
+};
+const PALETTE = ["#141410","#3B6EA5","#B3261E","#1B5E20","#8A6D00","#6A3D9A","#B85C00","#28748B","#7A1F5C","#4E5D2A"];
+const RF = 0.015; // 无风险利率假设
+
+/* ================= 数据加载（script 注入，绕开 CORS） ================= */
+function loadScript(url, timeout=15000){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    let done=false;
+    const t=setTimeout(()=>{ if(!done){done=true; s.remove(); reject(new Error("加载超时"));} }, timeout);
+    s.onload=()=>{ if(!done){done=true; clearTimeout(t); s.remove(); resolve();} };
+    s.onerror=()=>{ if(!done){done=true; clearTimeout(t); s.remove(); reject(new Error("网络加载失败"));} };
+    s.src=url; document.head.appendChild(s);
+  });
+}
+/* 拉单只基金全量数据（串行调用，避免全局变量互相覆盖） */
+async function fetchFundRaw(code){
+  await loadScript(`https://fund.eastmoney.com/pingzhongdata/${code}.js?rt=${Date.now()}`);
+  const keep=["fS_name","fS_code","fund_Rate","stockCodesNew","syl_1n","syl_6y","syl_3y","syl_1y",
+    "Data_netWorthTrend","Data_ACWorthTrend","Data_fluctuationScale","Data_holderStructure",
+    "Data_assetAllocation","Data_performanceEvaluation","Data_currentFundManager",
+    "Data_rateInSimilarPersent","ishb"];
+  const out={};
+  for(const k of keep){
+    try{ out[k] = window[k]!==undefined ? JSON.parse(JSON.stringify(window[k])) : undefined; }catch(e){ out[k]=undefined; }
+    try{ delete window[k]; }catch(e){}
+  }
+  return out;
+}
+/* ============ 基金库预载：来源说明 ============
+   桌面 rankhandler.aspx 会校验 Referer，file:// 页面（Origin=null）一律被拒；
+   移动端 FundRankNewList 服务端硬性 30 条/页，全量需 800+ 请求。
+   因此采用三层预载：
+     L1 代码表：fundcode_search.js → 全部基金代码 + 名称 + 类型（1 请求，约 2.5 万只）
+     L2 收益榜：移动端榜单 × 多种排序/类型分片 → 为主流基金补收益/规模（约 20 请求）
+     L3 精算：用户点选的基金再用 pingzhongdata 取全量净值自算回撤与夏普
+   ============================================= */
+const MOB_BASE = "https://fundmobapi.eastmoney.com/FundMApi/FundRankNewList.ashx";
+const MOB_COMMON = {deviceid:"Wap", plat:"Wap", product:"EFund", version:"2.0.0"};
+const RANK_SLICES = [
+  {ft:"0", sc:"1n", label:"全部·近1年", pages:60},
+  {ft:"0", sc:"6y", label:"全部·近6月", pages:60},
+  {ft:"0", sc:"3y", label:"全部·近3月", pages:50},
+  {ft:"0", sc:"1y", label:"全部·近1月", pages:50},
+  {ft:"0", sc:"zzf",label:"全部·近2年", pages:40},
+  {ft:"0", sc:"3n", label:"全部·近3年", pages:40},
+  {ft:"2", sc:"1n", label:"混合·近1年", pages:40},
+  {ft:"1", sc:"1n", label:"股票·近1年", pages:25},
+  {ft:"3", sc:"1n", label:"债券·近1年", pages:30},
+  {ft:"4", sc:"1n", label:"指数·近1年", pages:30},
+  {ft:"0", sc:"dwjz",label:"全部·净值", pages:20},
+  {ft:"0", sc:"rzdf",label:"全部·日涨幅", pages:15},
+];
+/* JSONP：file:// 下 fetch 会被 CORS 拦（Origin=null），必须用 script 注入 + callback */
+let jsonpSeq = 0;
+function jsonpJSON(url, timeout=20000){
+  return new Promise((resolve,reject)=>{
+    const cbName = "__fundCb" + (++jsonpSeq) + "_" + Date.now().toString(36);
+    const s = document.createElement("script");
+    let done=false;
+    const cleanup = ()=>{ try{ delete window[cbName]; }catch(e){} if(s.parentNode) s.remove(); };
+    const t = setTimeout(()=>{ if(done) return; done=true; cleanup(); reject(new Error("超时")); }, timeout);
+    window[cbName] = d => { if(done) return; done=true; clearTimeout(t); cleanup(); resolve(d); };
+    s.onerror = ()=>{ if(done) return; done=true; clearTimeout(t); cleanup(); reject(new Error("加载失败")); };
+    s.src = url + (url.indexOf("?")>=0 ? "&" : "?") + "callback=" + cbName;
+    document.head.appendChild(s);
+  });
+}
+async function fetchMobSlice(sc, ft, pages, onStep){
+  const out=[];
+  for(let pi=1; pi<=pages; pi++){
+    const q = Object.assign({}, MOB_COMMON, {pageIndex:pi, pageSize:30, SortColumn:sc, SortType:"desc", FundType:ft});
+    const url = MOB_BASE + "?" + Object.keys(q).map(k=>k+"="+encodeURIComponent(q[k])).join("&");
+    onStep && onStep();
+    try{
+      const d = await jsonpJSON(url);
+      const rows = d && d.Datas;
+      if(!Array.isArray(rows) || !rows.length) break;
+      out.push(...rows);
+      if(rows.length < 30) break;
+    }catch(e){ break; }
+  }
+  return out;
+}
+function mobRowToFund(r){
+  const num = v => (v===""||v==null||v==="--") ? null : (isFinite(parseFloat(v)) ? parseFloat(v) : null);
+  return {
+    code: r.FCODE, name: r.SHORTNAME,
+    d1: num(r.RZDF), nav: num(r.DWJZ),
+    m1: num(r.SYL_Y), m3: num(r.SYL_3Y), m6: num(r.SYL_6Y),
+    y1: num(r.SYL_1N), y2: num(r.SYL_2N), y3: num(r.SYL_3N),
+    y5: num(r.SYL_5N), since: num(r.SYL_LN),
+    setup: null, scale: null, fee: null, feeNow: null,
+    ftype: r.FUNDTYPE, asof: r.FSRQ,
+  };
+}
+/* L1：全量代码表（含名称与类型），一次请求 */
+async function loadCodeList(onMsg){
+  onMsg && onMsg("载入全量基金代码表…");
+  await loadScript("https://fund.eastmoney.com/js/fundcode_search.js?rt=" + Date.now(), 25000);
+  const r = window.r;
+  const list=[];
+  if(Array.isArray(r)){
+    for(const it of r){
+      if(!it || !it[0]) continue;
+      state.db.set(it[0], {name:it[2], type:it[3]||""});
+      list.push({code:it[0], name:it[2], ctype:it[3]||"", d1:null,nav:null,m1:null,m3:null,m6:null,y1:null,y2:null,y3:null,y5:null,since:null,setup:null,scale:null,fee:null,feeNow:null});
+    }
+    state.dbReady = true;
+  }
+  try{ delete window.r; }catch(e){}
+  return list;
+}
+/* L2：收益榜分片（片间并发 3 路，片内串行，兼顾速度与限流） */
+async function fetchRankAll(onProgress, level){
+  const slices = level==="quick" ? RANK_SLICES.slice(0,4) : RANK_SLICES;
+  const map = new Map();
+  let done = 0;
+  const totalPages = slices.reduce((a,s)=>a+s.pages,0);
+  const tick = label => { done++; onProgress && onProgress(`抓取榜单：${label}（已获得 ${map.size} 只收益数据）`, done/totalPages); };
+  let cursor = 0;
+  async function worker(){
+    while(cursor < slices.length){
+      const s = slices[cursor++];
+      const rows = await fetchMobSlice(s.sc, s.ft, s.pages, ()=>tick(s.label));
+      for(const r of rows){
+        if(!r || !/^\d{6}$/.test(String(r.FCODE))) continue;
+        const f = mobRowToFund(r);
+        const prev = map.get(r.FCODE);
+        map.set(r.FCODE, prev ? Object.assign({}, prev, f) : f);
+      }
+    }
+  }
+  const lanes = level==="quick" ? 2 : 3;
+  await Promise.all(Array.from({length:lanes}, ()=>worker()));
+  return map;
+}
+/* 保底：只加载类型库（体检已知代码时用，不进市场列表） */
+async function loadFundDB(){
+  if(state.dbReady) return;
+  try{ await loadCodeList(); }catch(e){}
+}
+function dbType(code){ const d=state.db.get(code); return d ? (d.type || d.ctype || "") : ""; }
+function typeGroup(typeStr){
+  const t = typeStr || "";
+  if(t.includes("货币")) return "money";
+  if(t.includes("债") || t.includes("理财")) return "bond";
+  return "equity";
+}
+
+/* ================= 指标计算 ================= */
+function calcStats(raw){
+  const ac = Array.isArray(raw.Data_ACWorthTrend) && raw.Data_ACWorthTrend.length>50 ? raw.Data_ACWorthTrend : raw.Data_netWorthTrend;
+  if(!Array.isArray(ac) || ac.length<30) return null;
+  const cutoff = Date.now() - 3*365.25*864e5;
+  let pts = ac.filter(p=>Array.isArray(p)&&p[0]>=cutoff&&p[1]>0);
+  if(pts.length<120) pts = ac.filter(p=>Array.isArray(p)&&p[1]>0).slice(-400);
+  if(pts.length<30) return null;
+  const spanDays = (pts[pts.length-1][0]-pts[0][0]) / 864e5;
+  const spanYears = spanDays/365.25;
+  const first=pts[0][1], last=pts[pts.length-1][1];
+  if(!(first>0)) return null;
+  const totalRet = last/first - 1;
+  const annRet = Math.pow(last/first, 1/Math.max(spanYears,.25)) - 1;
+  const rets=[];
+  for(let i=1;i<pts.length;i++){ if(pts[i-1][1]>0) rets.push(pts[i][1]/pts[i-1][1]-1); }
+  const mean = rets.reduce((a,b)=>a+b,0)/rets.length;
+  const sd = Math.sqrt(rets.reduce((a,b)=>a+(b-mean)*(b-mean),0)/Math.max(1,rets.length-1));
+  const avgGap = spanDays/Math.max(1,pts.length-1);
+  const annFactor = 244/Math.max(1,avgGap); // 按实际披露频率年化
+  const vol = sd*Math.sqrt(annFactor);
+  const sharpe = vol>0 ? (annRet-RF)/vol : null;
+  let peak=pts[0][1], mdd=0;
+  for(const p of pts){ if(p[1]>peak)peak=p[1]; const dd=1-p[1]/peak; if(dd>mdd)mdd=dd; }
+  const calmar = mdd>1e-6 ? annRet/mdd : null;
+  let peerPct = null;
+  const rsp = raw.Data_rateInSimilarPersent;
+  if(Array.isArray(rsp) && rsp.length && Array.isArray(rsp[rsp.length-1])) peerPct = rsp[rsp.length-1][1];
+  return { totalRet, annRet, vol, sharpe, mdd, calmar, peerPct, spanYears, points:pts, avgGap, lowFreq: avgGap>3 };
+}
+function parseManager(raw){
+  const ms = raw.Data_currentFundManager;
+  if(!Array.isArray(ms)||!ms.length) return {names:"—", years:null, star:null};
+  const names = ms.map(m=>m.name).join(" / ");
+  const m0 = String(ms[0].workTime||"");
+  let years = null;
+  const ym = m0.match(/(\d+)年/);
+  const dm = m0.match(/(\d+)天/);
+  if(ym) years = parseInt(ym[1]) + (dm?parseInt(dm[1])/365:0);
+  return { names, years, star: ms[0].star };
+}
+function parseScale(raw){
+  const s = raw.Data_fluctuationScale;
+  try{
+    if(s && Array.isArray(s.series) && s.series.length){
+      const last = s.series[s.series.length-1];
+      if(typeof last.y === "number") return last.y;
+      if(Array.isArray(last.data)) return last.data[last.data.length-1];
+    }
+    if(Array.isArray(s) && s.length && Array.isArray(s[s.length-1])) return s[s.length-1][1];
+  }catch(e){}
+  return null;
+}
+function parseInstPct(raw){
+  const h = raw.Data_holderStructure;
+  try{
+    const ser = (h && h.series||[]).find(x=>x.name && x.name.includes("机构"));
+    if(ser && Array.isArray(ser.data) && ser.data.length) return ser.data[ser.data.length-1];
+  }catch(e){}
+  return null;
+}
+function stockSet(raw){
+  const arr = raw.stockCodesNew;
+  if(!Array.isArray(arr)) return [];
+  return arr.map(s=>String(s).split(".")[1]).filter(c=>/^\d{6}$/.test(c));
+}
+
+/* ================= 评分 ================= */
+function scoreFund(f){
+  const w = WEIGHTS[state.style];
+  const st = f.stats;
+  if(!st) return null;
+  const sRet    = pw(st.annRet*100, [[-15,3],[-5,25],[0,40],[8,65],[15,82],[25,95],[40,100]]);
+  const sSharpe = pw(st.sharpe,   [[-1,3],[-.2,25],[0,35],[.5,60],[1,82],[1.5,95],[2.5,100]]);
+  const sMdd    = pw(st.mdd*100,  [[5,95],[15,75],[25,55],[35,35],[50,15],[65,5]]);
+  const sPeer   = st.peerPct!=null ? clip(st.peerPct,0,100) : 50;
+  let sQuality  = pw(f.mgrYears??0, [[.3,25],[1,50],[3,80],[5,100]]);
+  if(f.instPct!=null && f.instPct>20) sQuality += 5;
+  if(f.scale!=null){ if(f.scale<0.5||f.scale>800) sQuality-=15; else if(f.scale>=1&&f.scale<=200) sQuality+=5; }
+  sQuality = clip(sQuality,0,100);
+  const total = Math.round(w.ret*sRet + w.sharpe*sSharpe + w.mdd*sMdd + w.peer*sPeer + w.quality*sQuality);
+  return { sRet, sSharpe, sMdd, sPeer, sQuality, total };
+}
+function gradeOf(total){
+  if(total==null) return {label:"现金管理", cls:"g-cash"};
+  if(total>=75) return {label:"核心保留", cls:"g-core"};
+  if(total>=60) return {label:"正常持有", cls:"g-hold"};
+  if(total>=45) return {label:"观察", cls:"g-watch"};
+  return {label:"替换候选", cls:"g-swap"};
+}
+
+/* ================= 建模单只基金 ================= */
+async function buildFund(code, isCand){
+  const raw = await fetchFundRaw(code);
+  const name = raw.fS_name || state.db.get(code)?.name || code;
+  const typeStr = dbType(code);
+  const grp = (raw.ishb===true) ? "money" : typeGroup(typeStr);
+  const f = {
+    code, name, typeStr, grp, isCand:!!isCand,
+    fee: raw.fund_Rate, syl:{y1:raw.syl_1n, y3:raw.syl_3y, cur:raw.syl_1y},
+    stats:null, scores:null, total:null,
+    mgr:null, scale:null, instPct:null, perfEval:null,
+    stocks: stockSet(raw), assetAlloc:null,
+  };
+  if(grp!=="money"){
+    f.stats = calcStats(raw);
+    f.mgr = parseManager(raw);
+    f.mgrYears = f.mgr.years;
+    f.scale = parseScale(raw);
+    f.instPct = parseInstPct(raw);
+    f.perfEval = (raw.Data_performanceEvaluation && raw.Data_performanceEvaluation.categories) ? raw.Data_performanceEvaluation : null;
+    f.scores = scoreFund(f);
+    f.total = f.scores ? f.scores.total : null;
+  } else {
+    f.total = null;
+  }
+  return f;
+}
+
+/* ================= SVG 图形 ================= */
+function sparkSVG(f, color){
+  const pts = f.stats.points;
+  const cutoff = Date.now() - 365.25*864e5;
+  let p1 = pts.filter(p=>p[0]>=cutoff);
+  if(p1.length<20) p1 = pts.slice(-120);
+  if(p1.length<5) return "";
+  const base = p1[0][1];
+  let mn=Infinity, mx=-Infinity;
+  const vals = p1.map(p=>p[1]/base*100);
+  vals.forEach(v=>{ if(v<mn)mn=v; if(v>mx)mx=v; });
+  if(mx-mn<1e-6){mx+=1;mn-=1;}
+  const W=300,H=56,P=4;
+  const X = i => P + i*(W-2*P)/(vals.length-1);
+  const Y = v => P + (1-(v-mn)/(mx-mn))*(H-2*P);
+  const d = vals.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  const yb = Y(100);
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <line class="baseline" x1="${P}" y1="${yb}" x2="${W-P}" y2="${yb}"/>
+    <polyline points="${d}" fill="none" stroke="${color}" stroke-width="1.8"/>
+  </svg>`;
+}
+function bigChartSVG(funds){
+  const list = funds.filter(f=>f.stats).slice(0,9);
+  if(list.length<2) return "";
+  const W=720,H=280,PL=52,PR=14,PT=14,PB=30;
+  const cutoff = Date.now() - 365.25*864e5;
+  const series=[], names=[];
+  let mn=Infinity,mx=-Infinity,tMin=Infinity,tMax=-Infinity;
+  list.forEach((f,fi)=>{
+    let p1 = f.stats.points.filter(p=>p[0]>=cutoff);
+    if(p1.length<20) p1 = f.stats.points.slice(-120);
+    if(p1.length<5) return;
+    const base=p1[0][1];
+    const step = Math.max(1, Math.floor(p1.length/140));
+    const sampled = p1.filter((_,i)=>i%step===0 || i===p1.length-1);
+    const vals = sampled.map(p=>{ const t=p[0], v=p[1]/base*100; if(v<mn)mn=v; if(v>mx)mx=v; if(t<tMin)tMin=t; if(t>tMax)tMax=t; return [t,v]; });
+    series.push({vals, color:PALETTE[fi%PALETTE.length]});
+    names.push({name:f.name, color:PALETTE[fi%PALETTE.length], code:f.code});
+  });
+  if(series.length<1) return "";
+  if(mx-mn<2){mx+=1;mn-=1;}
+  const X=t=>PL+(t-tMin)/(tMax-tMin)*(W-PL-PR);
+  const Y=v=>PT+(1-(v-mn)/(mx-mn))*(H-PT-PB);
+  let grid="", labels="";
+  const steps=4;
+  for(let i=0;i<=steps;i++){
+    const v = mn + (mx-mn)*i/steps;
+    grid += `<line x1="${PL}" y1="${Y(v).toFixed(1)}" x2="${W-PR}" y2="${Y(v).toFixed(1)}" stroke="#EAEAE2" stroke-width="1"/>`;
+    labels += `<text x="${PL-6}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end" font-size="10" fill="#8B8B80" font-family="Consolas">${v.toFixed(0)}</text>`;
+  }
+  const yb = Y(100);
+  grid += `<line x1="${PL}" y1="${yb.toFixed(1)}" x2="${W-PR}" y2="${yb.toFixed(1)}" stroke="#B9B9AC" stroke-width="1" stroke-dasharray="4 3"/>`;
+  const dTxt = new Date(tMin).toISOString().slice(0,10) + " → " + new Date(tMax).toISOString().slice(0,10);
+  let paths="";
+  series.forEach(s=>{
+    paths += `<polyline fill="none" stroke="${s.color}" stroke-width="1.6" points="${s.vals.map(p=>X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ")}"/>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}">
+    ${grid}${labels}${paths}
+    <text x="${PL}" y="${H-8}" font-size="10" fill="#8B8B80" font-family="Consolas">${dTxt}（近1年，起点=100）</text>
+  </svg><div class="legend2">${names.map(n=>`<span><span class="dot" style="background:${n.color}"></span>${esc(n.name)}</span>`).join("")}</div>`;
+}
+
+/* ================= 渲染 ================= */
+const GRADE_CLS = g => g;
+function subbarRow(lbl, val, hi){
+  return `<div class="subbar${hi?" hi":""}"><span class="lbl">${lbl}</span><div class="track"><div class="fill" style="width:${clip(val,0,100)}%"></div></div><span class="val">${Math.round(val)}</span></div>`;
+}
+function fundCard(f, fi){
+  const g = gradeOf(f.total);
+  const color = PALETTE[fi%PALETTE.length];
+  if(f.grp==="money"){
+    return `<div class="fcard"><div class="fhead"><div>
+      <div class="fname">${esc(f.name)}</div><div class="fcode mono">${f.code}</div>
+      <span class="ftype">${esc(f.typeStr||"货币型")}</span></div>
+      <div class="score-box"><div class="s" style="color:var(--ink2)">—</div><span class="g g-cash">现金管理</span></div></div>
+      <div class="meta">货币基金：不参与权益评分与回撤对比，按现金管理仓位单独对待（七日年化请以支付宝页面为准）。</div>
+      <div class="amt">持有金额 ¥ <input type="number" min="0" step="100" data-code="${f.code}" class="amtInput" value="${f.amount??""}" placeholder="选填"></div>
+    </div>`;
+  }
+  const st=f.stats, sc=f.scores;
+  const peerTxt = st.peerPct!=null ? st.peerPct.toFixed(1)+"%" : "—";
+  const sy = f.syl;
+  const mddCls = st.mdd>0.3 ? "color:var(--bad)" : "";
+  const sharpeCls = st.sharpe!=null&&st.sharpe<0 ? "color:var(--bad)" : "";
+  return `<div class="fcard${f.isCand?" cand":""}">
+    ${f.isCand?'<span class="badge-cand">候选</span>':""}
+    <div class="fhead"><div>
+      <div class="fname">${esc(f.name)}</div>
+      <div class="fcode mono">${f.code} · ${esc(f.typeStr||"")}</div>
+      <span class="ftype">${{equity:"权益类",bond:"固收类"}[f.grp]||""}${st.lowFreq?" · 低频净值":""}</span>
+    </div>
+    <div class="score-box"><div class="s">${f.total}</div><span class="g ${g.cls}">${g.label}</span></div></div>
+    ${sparkSVG(f, color)}
+    <div class="metrics">
+      <span class="mk">年化收益</span><span class="mv">${fmtPct(st.annRet)}</span>
+      <span class="mk">最大回撤</span><span class="mv" style="${mddCls}">${fmtPct(st.mdd)}</span>
+      <span class="mk">夏普</span><span class="mv" style="${sharpeCls}">${fmtNum(st.sharpe)}</span>
+      <span class="mk">卡玛</span><span class="mv">${fmtNum(st.calmar)}</span>
+      <span class="mk">同类百分位</span><span class="mv">${peerTxt}</span>
+      <span class="mk">年化波动</span><span class="mv">${fmtPct(st.vol)}</span>
+    </div>
+    <div class="subbars">
+      ${subbarRow("收益", sc.sRet)}
+      ${subbarRow("风险调整", sc.sSharpe)}
+      ${subbarRow("回撤控制", sc.sMdd)}
+      ${subbarRow("同类排名", sc.sPeer, sc.sPeer>=60)}
+      ${subbarRow("质量", sc.sQuality)}
+    </div>
+    <div class="meta">
+      经理 <b>${esc(f.mgr.names)}</b>（任职 <b>${f.mgr.years!=null?fmtNum(f.mgr.years,1)+" 年":"—"}</b>）· 规模 <b>${f.scale!=null?fmtNum(f.scale,1)+" 亿":"—"}</b> · 机构持有 <b>${f.instPct!=null?fmtNum(f.instPct,2)+"%":"—"}</b> · 申购费 <b>${f.fee?esc(f.fee)+"%":"—"}</b><br>
+      官方阶段收益：近1年 <b>${sy.y1?esc(sy.y1)+"%":"—"}</b> · 近3年 <b>${sy.y3?esc(sy.y3)+"%":"—"}</b> · 重仓股样本 <b>${f.stocks.length}</b> 只
+    </div>
+    <div class="amt">持有金额 ¥ <input type="number" min="0" step="100" data-code="${f.code}" class="amtInput" value="${f.amount??""}" placeholder="选填"></div>
+  </div>`;
+}
+function failCard(code, msg){
+  return `<div class="fcard fail"><div class="fname mono">${esc(code)}</div><div class="failcard">拉取失败：${esc(msg)}。请确认代码是否为 6 位基金代码，或稍后重试。</div></div>`;
+}
+
+/* ---- 组合层 ---- */
+function weightsOf(funds){
+  const eq = funds.filter(f=>f.grp!=="money");
+  const anyAmt = eq.some(f=>f.amount>0);
+  const tot = anyAmt ? eq.reduce((a,f)=>a+(f.amount||0),0) : 0;
+  return eq.map(f=>({f, w: anyAmt ? (f.amount||0)/tot : 1/eq.length, weighted: anyAmt}));
+}
+function renderOverview(){
+  const funds = state.funds;
+  const eq = funds.filter(f=>f.grp!=="money");
+  const mm = funds.filter(f=>f.grp==="money");
+  const ws = weightsOf(funds);
+  const anyAmt = ws.length && ws[0].weighted;
+  const wAnn = ws.reduce((a,x)=>a + (x.f.stats?.annRet??0)*x.w, 0);
+  const wMdd = ws.reduce((a,x)=>a + (x.f.stats?.mdd??0)*x.w, 0);
+  const totAmt = eq.reduce((a,f)=>a+(f.amount||0),0) + mm.reduce((a,f)=>a+(f.amount||0),0);
+  const dupPairs = overlapPairs(eq);
+  $("#kpis").innerHTML = `
+    <div class="kpi"><div class="k">权益类持仓</div><div class="v">${eq.length}<span class="u"> 只</span></div></div>
+    <div class="kpi"><div class="k">现金/固收</div><div class="v">${mm.length}<span class="u"> 只</span></div></div>
+    <div class="kpi"><div class="k">${anyAmt?"总市值":"总金额"}</div><div class="v small">${anyAmt?"¥"+fmtMoney(totAmt):"未填"}</div></div>
+    <div class="kpi"><div class="k">加权年化收益（近3年窗口）</div><div class="v">${eq.length?fmtPct(wAnn):"—"}</div></div>
+    <div class="kpi"><div class="k">加权最大回撤</div><div class="v" style="${wMdd>0.3?"color:var(--bad)":""}">${eq.length?fmtPct(wMdd):"—"}</div></div>
+    <div class="kpi"><div class="k">重仓股重合警报</div><div class="v" style="${dupPairs.length?"color:var(--bad)":""}">${dupPairs.length}<span class="u"> 对</span></div></div>`;
+  // 权重条
+  const wbar = $("#wbar");
+  wbar.style.display = ws.length ? "flex" : "none";
+  wbar.innerHTML = ws.map((x,i)=>`<div class="seg" style="width:${(x.w*100).toFixed(1)}%;background:${PALETTE[i%PALETTE.length]}" title="${esc(x.f.name)} ${(x.w*100).toFixed(1)}%">${x.w>0.07?(x.w*100).toFixed(0)+"%":""}</div>`).join("");
+  $("#wlegend").innerHTML = ws.map((x,i)=>`<span><span class="dot" style="background:${PALETTE[i%PALETTE.length]}"></span>${esc(x.f.name)} <b class="num">${(x.w*100).toFixed(1)}%</b></span>`).join("") + (mm.length?`<span><span class="dot" style="background:#C8C8BC"></span>现金/固收 ${mm.length} 只</span>`:"");
+  $("#bigchart").innerHTML = bigChartSVG(eq);
+  renderDiag(ws, dupPairs);
+  $("#sec-overview").style.display = "";
+}
+function overlapPairs(eq){
+  const out=[];
+  for(let i=0;i<eq.length;i++) for(let j=i+1;j<eq.length;j++){
+    const a=new Set(eq[i].stocks), b=eq[j].stocks;
+    let n=0; b.forEach(s=>{ if(a.has(s)) n++; });
+    if(n>=4) out.push({a:eq[i], b:eq[j], n});
+  }
+  return out.sort((x,y)=>y.n-x.n);
+}
+function renderDiag(ws, dupPairs){
+  const funds = state.funds;
+  const eq = funds.filter(f=>f.grp!=="money");
+  const mm = funds.filter(f=>f.grp==="money");
+  const items=[];
+  if(!eq.length && !mm.length){ $("#diag").innerHTML="<ul><li>暂无持仓</li></ul>"; return; }
+  if(eq.length>=9) items.push(["p2","P2",`权益基金已达 <b>${eq.length}</b> 只：对个人投资者跟踪成本高，且分散化收益递减（A股权益基金间相关性普遍 0.7+），建议精简到 5–7 只`]);
+  ws.forEach(x=>{ if(x.w>0.35) items.push(["p2","P2",`<b>${esc(x.f.name)}</b> 占比 <b>${(x.w*100).toFixed(1)}%</b>，超过 35% 集中度线：单基金黑天鹅会直接主导组合命运`]); });
+  dupPairs.forEach(p=>{
+    const keep = (p.a.total??-1) >= (p.b.total??-1) ? p.a : p.b;
+    const drop = keep===p.a ? p.b : p.a;
+    items.push(["p1","P1",`重仓股重合：<b>${esc(p.a.name)}</b> 与 <b>${esc(p.b.name)}</b> 重合 <b>${p.n}</b> 只 → 实质是同一笔暴露，建议二选一（评分更高的「${esc(keep.name)}」${keep.total??"—"} 分）`]);
+  });
+  const weak = eq.filter(f=>f.total!=null&&f.total<45);
+  if(weak.length) items.push(["p1","P1",`<b>${weak.map(f=>esc(f.name)).join("、")}</b> 评分低于 45，进入替换候选（详见调仓清单）`]);
+  if(mm.length) items.push(["ok","OK",`检测到 <b>${mm.length}</b> 只现金/固收类：这是组合的稳定器，与权益仓位分开管理即可，不必与股票基金比收益`]);
+  if(!items.length) items.push(["ok","OK","组合层面未见集中度、重合度、数量方面的结构性问题。纪律持有 + 定期（每季）复查即可"]);
+  $("#diag").innerHTML = `<div class="note" style="margin-bottom:8px">规则触发的组合诊断：</div><ul>${items.map(i=>`<li class="${i[0]}"><span class="tag ${"t-"+i[0]}">${i[1]}</span>${i[2]}</li>`).join("")}</ul>`;
+}
+
+/* ---- 基金市场筛选 ---- */
+const mkt = { list:[], filtered:[], order:"desc", field:"y1", shown:50 };
+function mktApply(){
+  const kw = ($("#mktKw").value||"").trim().toLowerCase();
+  const minY1 = parseFloat($("#mktMinY1").value);
+  const minScale = parseFloat($("#mktMinScale").value);
+  const typeKw = $("#mktType").value;
+  mkt.filtered = mkt.list.filter(f=>{
+    if(typeKw && !((f.ctype||"")+" "+(f.name||"")).includes(typeKw)) return false;
+    if(kw && !(f.code.includes(kw) || (f.name&&f.name.toLowerCase().includes(kw)))) return false;
+    /* 有收益筛选条件时，自动排除无收益记录的条目，避免结果为空 */
+    if(isFinite(minY1)){ if(!(f.y1!=null && f.y1>=minY1)) return false; }
+    else if(f.y1==null && f.m6==null && f.m3==null) return false;
+    if(isFinite(minScale) && minScale>0){ if(!(f.scale!=null && f.scale>=minScale)) return false; }
+    return true;
+  });
+  const fld = mkt.field;
+  mkt.filtered.sort((a,b)=>{
+    const x=a[fld], y=b[fld];
+    if(x==null&&y==null) return 0;
+    if(x==null) return 1;
+    if(y==null) return -1;
+    return mkt.order==="desc" ? y-x : x-y;
+  });
+  mkt.shown = 50;
+  renderMkt();
+}
+function renderMkt(){
+  const seg = mkt.filtered.slice(0, mkt.shown);
+  const held = new Set([...state.funds.map(f=>f.code), ...state.candidates.map(f=>f.code)]);
+  $("#mktStats").innerHTML = mkt.list.length
+    ? `基金库 <b>${mkt.list.length.toLocaleString()}</b> 只 · 当前条件命中 <b>${mkt.filtered.length.toLocaleString()}</b> 只 · 显示前 ${seg.length} 只`
+    : "等待基金库载入…";
+  if(!seg.length){ $("#mktWrap").style.display="none"; $("#mktMore").style.display="none"; return; }
+  const cell = v => v==null ? "—" : `<span style="${v>=0?"color:var(--bad)":"color:var(--good)"}">${v.toFixed(2)}%</span>`;
+  $("#mktTable").innerHTML = `<thead><tr>
+    <td>基金名称</td><td>类型</td><td>近1月</td><td>近3月</td><td>近6月</td><td>近1年</td><td>近3年</td><td>操作</td>
+  </tr></thead><tbody>${seg.map(f=>`<tr>
+    <td class="nm" title="${esc(f.name)}">${esc(f.name)}<br><span class="mono" style="font-size:11px;color:var(--ink2)">${f.code}</span></td>
+    <td style="font-size:11.5px;color:var(--ink2)">${esc((f.ctype||"").replace(/型.*$/,"型"))||"—"}</td>
+    <td>${cell(f.m1)}</td><td>${cell(f.m3)}</td><td>${cell(f.m6)}</td><td>${cell(f.y1)}</td><td>${cell(f.y3)}</td>
+    <td>${held.has(f.code)
+        ? '<button class="addbtn held" disabled>已加入</button>'
+        : `<button class="addbtn" data-add="${f.code}">加入对比</button>`}</td>
+  </tr>`).join("")}</tbody>`;
+  $("#mktWrap").style.display="";
+  $("#mktMore").style.display = mkt.shown < mkt.filtered.length ? "" : "none";
+  $("#mktMore").textContent = `显示更多（当前 ${mkt.shown} / ${mkt.filtered.length}）`;
+  $("#sec-market").style.display = "";
+}
+function buildMktTypeOptions(){
+  /* 优先用官方代码表里的标准类型，缺失时退回名称关键字 */
+  const CN = ["股票型","混合型","债券型","指数型","QDII","FOF","货币型","理财型","商品","REITs","保本型"];
+  const fromCol = new Set();
+  const hit = new Set();
+  for(const f of mkt.list){
+    if(f.ctype){
+      for(const t of CN){ if(f.ctype.includes(t)){ fromCol.add(t); hit.add(t); } }
+    }
+  }
+  const opts = CN.filter(t=>fromCol.has(t));
+  $("#mktType").innerHTML = `<option value="">全部类型</option>` + opts.map(t=>`<option value="${t}">${t}</option>`).join("");
+}
+
+/* ---- 对比表 ---- */
+function renderCompare(){
+  const all = [...state.funds.filter(f=>f.grp!=="money"), ...state.candidates.filter(f=>f.grp!=="money")]
+    .sort((a,b)=>(b.total??-1)-(a.total??-1));
+  if(all.length<2){ $("#sec-compare").style.display="none"; return; }
+  const row = (label, fn, hiFn) => `<tr${hiFn?" class='hi'":""}><td>${label}</td>${all.map(f=>`<td>${fn(f)}</td>`).join("")}</tr>`;
+  $("#cmpTable").innerHTML = `<thead><tr><td>指标</td>${all.map(f=>`<td>${f.isCand?'<span class="g2" style="background:var(--ink);color:var(--lemon)">候选</span> ':''}${esc(f.name.slice(0,10))}<br><span class="mono" style="font-size:11px;color:var(--ink2)">${f.code}</span></td>`).join("")}</tr></thead><tbody>
+    ${row("综合评分", f=>`<b style="font-size:15px">${f.total??"—"}</b>`)}
+    ${row("评级", f=>{const g=gradeOf(f.total);return `<span class="g2 ${g.cls.replace("g-","g-")}" style="background:var(--${{["g-core"]:"goodBg",["g-hold"]:"infoBg",["g-watch"]:"warnBg",["g-swap"]:"badBg",["g-cash"]:"line"}[g.cls]||"line"})">${g.label}</span>`;})}
+    ${row("年化收益（自算）", f=>fmtPct(f.stats?.annRet))}
+    ${row("最大回撤", f=>fmtPct(f.stats?.mdd))}
+    ${row("夏普比率", f=>fmtNum(f.stats?.sharpe))}
+    ${row("卡玛比率", f=>fmtNum(f.stats?.calmar))}
+    ${row("同类百分位", f=>f.stats?.peerPct!=null?fmtNum(f.stats.peerPct,1)+"%":"—")}
+    ${row("近1年收益（官方）", f=>f.syl?.y1?esc(f.syl.y1)+"%":"—")}
+    ${row("近3年收益（官方）", f=>f.syl?.y3?esc(f.syl.y3)+"%":"—")}
+    ${row("规模（亿）", f=>f.scale!=null?fmtNum(f.scale,1):"—")}
+    ${row("基金经理", f=>esc(f.mgr?.names||"—"))}
+    ${row("任职年限", f=>f.mgr?.years!=null?fmtNum(f.mgr.years,1)+"年":"—")}
+    ${row("机构持有", f=>f.instPct!=null?fmtNum(f.instPct,2)+"%":"—")}
+  </tbody>`;
+  $("#sec-compare").style.display="";
+}
+
+/* ---- 调仓清单 ---- */
+function renderActions(){
+  const eq = state.funds.filter(f=>f.grp!=="money");
+  const ws = weightsOf(eq.length?eq:[]);
+  const dupPairs = overlapPairs(eq);
+  const items=[];
+  eq.forEach(f=>{
+    if(f.total!=null&&f.total<45) items.push({p:1, html:`<b>替换研究</b>：<b>${esc(f.name)}</b>（${f.total} 分）综合评分垫底——先在候选池加入 2–3 只同类基金对比，确认更优后再换，不要只因为短期涨跌换仓`});
+    else if(f.stats && f.stats.mdd>0.40 && (f.stats.sharpe??1)<0.3) items.push({p:1, html:`<b>风险失控</b>：<b>${esc(f.name)}</b> 回撤 ${fmtPct(f.stats.mdd)} 且夏普 ${fmtNum(f.stats.sharpe)}——赚的不是风险调整后的钱`});
+  });
+  dupPairs.forEach(p=>{
+    if(p.n>=5){
+      const keep=(p.a.total??-1)>=(p.b.total??-1)?p.a:p.b, drop=keep===p.a?p.b:p.a;
+      items.push({p:1, html:`<b>二选一</b>：<b>${esc(p.a.name)}</b> × <b>${esc(p.b.name)}</b> 前十大重仓股重合 ${p.n} 只，建议保留 <b>${esc(keep.name)}</b>（${keep.total??"—"} 分）、处理 <b>${esc(drop.name)}</b>`});
+    }
+  });
+  eq.forEach(f=>{
+    if(f.total!=null&&f.total>=45&&f.total<60){
+      const why=[];
+      if(f.stats.peerPct!=null&&f.stats.peerPct<40) why.push(`同类百分位仅 ${fmtNum(f.stats.peerPct,1)}%`);
+      if(f.stats.mdd>0.30) why.push(`回撤 ${fmtPct(f.stats.mdd)} 偏深`);
+      const avg = ws.length? ws.reduce((a,x)=>a+(x.f.stats?.annRet??0),0)/ws.length : null;
+      if(avg!=null && f.stats.annRet < avg-0.05) why.push(`年化跑输组合均值 5pct 以上`);
+      items.push({p:2, html:`<b>观察</b>：<b>${esc(f.name)}</b>（${f.total} 分）${why.length?"——"+why.join("；"):"——处于及格线附近"}，设一个复查条件（如连续两季仍低于同类中位再动手）`});
+    }
+  });
+  ws.forEach(x=>{ if(x.w>0.35) items.push({p:2, html:`<b>降集中</b>：<b>${esc(x.f.name)}</b> 占比 ${(x.w*100).toFixed(1)}% > 35%，新增资金先补其他仓位而非它`}); });
+  state.candidates.filter(c=>c.total!=null).forEach(c=>{
+    const worse = eq.filter(f=>f.total!=null&&f.total<60&&(c.total-f.total)>=10);
+    if(worse.length) items.push({p:2, html:`<b>候选更优</b>：候选池中的 <b>${esc(c.name)}</b>（${c.total} 分）明显高于 ${esc(worse.map(f=>f.name).join("、"))}，值得认真对比后考虑替换`});
+  });
+  if(eq.length>=9) items.push({p:3, html:`<b>精简数量</b>：权益 ${eq.length} 只偏多，把最小的 1–2 笔并入最看好的核心仓，降低跟踪负担`});
+  eq.forEach(f=>{ if(f.stats?.peerPct!=null&&f.stats.peerPct<30&&f.total>=60) items.push({p:3, html:`<b>持续跟踪</b>：<b>${esc(f.name)}</b> 综合分合格但同类百分位 ${fmtNum(f.stats.peerPct,1)}% 偏低，纳入季度复查名单`}); });
+  items.sort((a,b)=>a.p-b.p);
+  if(!items.length) items.push({p:0, html:`<b>保持纪律</b>：当前无触发项。建议每季度复查一次，用新数据重新体检，避免频繁交易吃掉收益`});
+  const cls=["ok","p1","p2","p3"], tag=["OK","P1","P2","P3"];
+  $("#actions").innerHTML = `<ul>${items.map(i=>`<li class="${cls[i.p]}"><span class="tag t-${cls[i.p]}">${tag[i.p]}</span>${i.html}</li>`).join("")}</ul>`;
+  $("#sec-actions").style.display="";
+}
+
+/* ================= 预载入（三层策略） ================= */
+const CACHE_KEY = "fundCheckerLib_v2";
+function setProg(on, msg, ratio){
+  $("#progWrap").classList.toggle("on", !!on);
+  if(msg!=null) $("#progMsg").textContent = msg;
+  if(ratio!=null) $("#progFill").style.width = clip(ratio*100,0,100) + "%";
+}
+function updateDbInfo(extra){
+  const n = mkt.list.length || 0;
+  const withRet = mkt.list.filter(f=>f.y1!=null).length;
+  $("#dbInfo").innerHTML = n
+    ? `基金库 <b>${n.toLocaleString()}</b> 只（含收益数据 <b>${withRet.toLocaleString()}</b> 只）${extra?" · "+extra:""}`
+    : "基金库未载入（仅能体检已知代码）";
+}
+function saveLibCache(){
+  try{
+    const slim = mkt.list.filter(f=>f.y1!=null || f.m6!=null).map(f=>[f.code,f.name,f.y1,f.m6,f.m3,f.m1,f.y3,f.ctype]);
+    localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(), d:slim}));
+    return slim.length;
+  }catch(e){ return 0; }
+}
+function readLibCache(){
+  try{
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return null;
+    const o = JSON.parse(raw);
+    if(!o || !Array.isArray(o.d)) return null;
+    const list = o.d.map(a=>({code:a[0], name:a[1], y1:a[2], m6:a[3], m3:a[4], m1:a[5], y3:a[6], ctype:a[7]||"",
+      d1:null,nav:null,y2:null,y5:null,since:null,setup:null,scale:null,fee:null,feeNow:null}));
+    return {list, t:o.t};
+  }catch(e){ return null; }
+}
+async function preload(level){
+  $("#btnPreload").disabled = true;
+  const t0 = Date.now();
+  try{
+    setProg(true, "① 载入全量基金代码表…", 0.02);
+    const codes = await loadCodeList(m=>setProg(true, "① "+m, 0.05));
+    setProg(true, `① 已获得 ${codes.length.toLocaleString()} 只基金代码，开始抓收益榜…`, 0.08);
+    /* L2：收益榜分片 */
+    const rankMap = await fetchRankAll((msg, ratio)=>setProg(true, "② "+msg, 0.08 + ratio*0.85), level);
+    /* 合并：代码表为底，收益榜覆盖 */
+    const merged = new Map();
+    for(const c of codes){
+      const hit = rankMap.get(c.code);
+      if(hit) merged.set(c.code, Object.assign({}, c, hit, {name: c.name || hit.name, ctype: c.ctype}));
+      else merged.set(c.code, c);
+    }
+    for(const [code, r] of rankMap){ if(!merged.has(code)) merged.set(code, r); }
+    mkt.list = [...merged.values()];
+    const saved = saveLibCache();
+    buildMktTypeOptions();
+    mktApply();
+    const secs = ((Date.now()-t0)/1000).toFixed(1);
+    const withRet = mkt.list.filter(f=>f.y1!=null).length;
+    setProg(true, `完成：${mkt.list.length.toLocaleString()} 只基金（其中 ${withRet.toLocaleString()} 只有收益数据），用时 ${secs} 秒${saved?"，已缓存":"（缓存失败）"}`, 1);
+    updateDbInfo("数据截至上一交易日");
+    setStatus(`基金库就绪：${mkt.list.length.toLocaleString()} 只可搜索筛选。点「加入对比」的基金会自动拉取 3 年净值算回撤与夏普。`);
+  }catch(e){
+    setProg(true, "预载失败：" + e.message + "。可重试，或直接用代码体检。", 0);
+    setStatus("预载入失败：" + e.message, true);
+  }finally{
+    $("#btnPreload").disabled = false;
+  }
+}
+function useCache(){
+  const c = readLibCache();
+  if(!c){ setStatus("本机暂无可用缓存，请先点「预载入基金库」", true); return; }
+  mkt.list = c.list;
+  buildMktTypeOptions();
+  mktApply();
+  updateDbInfo(`缓存时间 ${new Date(c.t).toLocaleString("zh-CN")}`);
+  $("#btnCache").textContent = "重新读取缓存";
+  setStatus(`已从本机缓存恢复 ${c.list.length.toLocaleString()} 只基金（可点预载入刷新到最新）`);
+}
+
+/* ================= 主流程 ================= */
+function setStatus(msg, isErr){ const el=$("#status"); el.textContent=msg; el.classList.toggle("err", !!isErr); }
+async function run(){
+  const txt = $("#codesInput").value;
+  const codes = [...new Set((txt.match(/\b\d{6}\b/g)||[]))];
+  if(!codes.length){ setStatus("请先粘贴至少一个 6 位基金代码", true); return; }
+  $("#btnRun").disabled = true;
+  try{
+    setStatus("加载基金数据库（首次约 1–2MB）…");
+    if(!state.dbReady){ try{ await loadFundDB(); }catch(e){ setStatus("基金类型库加载失败（不影响核心评分）", true); } }
+    state.funds = [];
+    for(let i=0;i<codes.length;i++){
+      setStatus(`正在体检 ${i+1}/${codes.length}：${codes[i]} …`);
+      try{ state.funds.push(await buildFund(codes[i], false)); }
+      catch(e){ state.funds.push({code:codes[i], fail:true, errMsg:e.message}); }
+    }
+    renderAll();
+    setStatus(`体检完成：${state.funds.filter(f=>!f.fail).length} 只成功，数据净值截至上一交易日。`);
+  } finally { $("#btnRun").disabled = false; }
+}
+function renderAll(){
+  const ok = state.funds.filter(f=>!f.fail);
+  const fail = state.funds.filter(f=>f.fail);
+  let cardsHtml = "";
+  const all = [...ok, ...state.candidates].slice().sort((a,b)=>{
+    const ag=a.grp==="money"?-1:(a.total??-1), bg=b.grp==="money"?-1:(b.total??-1);
+    return bg-ag;
+  });
+  all.forEach(f=>{ cardsHtml += fundCard(f, all.indexOf(f)); });
+  fail.forEach(f=>{ cardsHtml += failCard(f.code, f.errMsg); });
+  $("#cards").innerHTML = cardsHtml;
+  $("#sec-cards").style.display = all.length||fail.length ? "" : "none";
+  if(ok.length){ renderOverview(); renderCompare(); renderActions(); }
+  else { $("#sec-overview").style.display="none"; $("#sec-compare").style.display="none"; $("#sec-actions").style.display="none"; }
+}
+function rescore(){
+  [...state.funds, ...state.candidates].forEach(f=>{
+    if(f.grp && f.grp!=="money" && f.stats){ f.scores = scoreFund(f); f.total = f.scores?f.scores.total:null; }
+  });
+  renderAll();
+}
+
+/* ================= 交互 ================= */
+$("#btnRun").addEventListener("click", run);
+$("#btnPreload").addEventListener("click", ()=>preload("full"));
+$("#btnCache").addEventListener("click", useCache);
+["#mktType","#mktMinY1","#mktMinScale","#mktSort"].forEach(s=>{
+  $(s).addEventListener("change", ()=>{
+    if(s==="#mktSort") mkt.field = $("#mktSort").value;
+    mktApply();
+  });
+});
+["#mktKw","#mktMaxMdd"].forEach(s=>{ $(s).addEventListener("input", mktApply); });
+$("#ordDesc").addEventListener("click", ()=>{ mkt.order="desc"; $("#ordDesc").classList.add("on"); $("#ordAsc").classList.remove("on"); mktApply(); });
+$("#ordAsc").addEventListener("click", ()=>{ mkt.order="asc"; $("#ordAsc").classList.add("on"); $("#ordDesc").classList.remove("on"); mktApply(); });
+$("#mktMore").addEventListener("click", ()=>{ mkt.shown += 50; renderMkt(); });
+$("#mktTable").addEventListener("click", e=>{
+  const b = e.target.closest("[data-add]"); if(!b) return;
+  b.disabled = true; b.textContent = "拉取中…";
+  addCandidate(b.dataset.add).then(()=>renderMkt());
+});
+$("#btnDemo").addEventListener("click", ()=>{
+  $("#codesInput").value = "161725, 000961, 110011, 005827, 001594";
+  run().then(()=>{
+    const amt = {"161725":30000,"000961":40000,"110011":20000,"005827":20000,"001594":15000};
+    document.querySelectorAll(".amtInput").forEach(inp=>{ if(amt[inp.dataset.code]){ inp.value = amt[inp.dataset.code]; inp.dispatchEvent(new Event("change")); } });
+  });
+});
+document.addEventListener("change", e=>{
+  if(e.target.classList && e.target.classList.contains("amtInput")){
+    const code = e.target.dataset.code;
+    const v = parseFloat(e.target.value);
+    const f = [...state.funds, ...state.candidates].find(x=>x.code===code);
+    if(f){ f.amount = isNaN(v)?null:v; renderAll(); }
+  }
+});
+$("#styleSeg").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  state.style = b.dataset.w;
+  $("#styleSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+  rescore();
+});
+/* 基金搜索：优先用预载库（零延迟、可离线），否则用代码表 */
+const sIn = $("#searchInput"), sDrop = $("#searchDrop");
+sIn.addEventListener("input", ()=>{
+  const q = sIn.value.trim();
+  if(!q){ sDrop.classList.remove("on"); return; }
+  const res=[];
+  let pool = null;
+  if(mkt.list.length){
+    pool = mkt.list.filter(f=>f.code.startsWith(q) || (f.name&&f.name.includes(q)));
+  } else if(state.dbReady){
+    const tmp=[];
+    for(const [code, info] of state.db){
+      tmp.push({code, name:info.name, type:info.type});
+      if(tmp.length>20000) break;
+    }
+    pool = tmp.filter(f=>f.code.startsWith(q) || (f.name&&f.name.includes(q)));
+  }
+  if(!pool){ sDrop.classList.remove("on"); return; }
+  for(const f of pool){ if(res.length>=12) break; res.push(f); }
+  if(!res.length){ sDrop.classList.remove("on"); return; }
+  sDrop.innerHTML = res.map(r=>`<div class="it" data-code="${r.code}"><span>${esc(r.name)}</span><span class="c mono">${r.code}${r.type?" · "+esc(r.type):""}</span></div>`).join("");
+  sDrop.classList.add("on");
+});
+sDrop.addEventListener("click", e=>{
+  const it = e.target.closest(".it"); if(!it) return;
+  sDrop.classList.remove("on"); sIn.value = "";
+  addCandidate(it.dataset.code);
+});
+document.addEventListener("click", e=>{ if(!e.target.closest(".search")) sDrop.classList.remove("on"); });
+async function addCandidate(code){
+  if(state.funds.some(f=>f.code===code)){ setStatus("该基金已在持仓中", true); return; }
+  if(state.candidates.some(f=>f.code===code)){ setStatus("该基金已在候选池", true); return; }
+  if(state.candidates.length>=12){ setStatus("候选池最多 12 只，先移除部分再试", true); return; }
+  try{
+    setStatus(`拉取候选 ${code} …`);
+    if(!state.dbReady){ try{ await loadFundDB(); }catch(e){} }
+    const f = await buildFund(code, true);
+    state.candidates.push(f);
+    renderAll();
+    setStatus(`候选 ${f.name} 已加入对比`);
+  }catch(e){ setStatus(`候选 ${code} 拉取失败：${e.message}`, true); }
+}
+/* URL 自动运行：?codes=161725,000961&auto=1&preload=1 */
+(function init(){
+  $("#genTime").textContent = new Date().toLocaleString("zh-CN");
+  const q = new URLSearchParams(location.search);
+  /* 启动时自动恢复缓存（无需用户手动点） */
+  const c = readLibCache();
+  if(c && c.list.length){
+    mkt.list = c.list;
+    buildMktTypeOptions();
+    mktApply();
+    updateDbInfo(`缓存时间 ${new Date(c.t).toLocaleString("zh-CN")}`);
+    $("#btnCache").textContent = "重新读取缓存";
+  }
+  if(q.get("preload")) preload(q.get("preload")==="quick" ? "quick" : "full");
+  const codes = q.get("codes");
+  if(codes){
+    $("#codesInput").value = codes;
+    if(q.get("auto")==="1") run();
+  }
+})();
+</script>
+</body>
+</html>
